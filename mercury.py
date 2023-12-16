@@ -120,47 +120,74 @@ def compile_program(program, out_fp):
             else:
                 assert False, "unreachable."
 
-        out.write("    mov rax, 60\n")
-        out.write("    mov rdi, 0\n")
+        out.write("\n")
+        out.write("    mov     rax, 60\n")
+        out.write("    mov     rdi, 0\n")
         out.write("    syscall\n")
 
 
-# TODO: load program from file (hardcoded ew)
-program = [
-        push(34),
-        push(35),
-        plus(),
-        dump(),
-        push(500),
-        push(80),
-        minus(),
-        dump()
-]
+def parse_word_as_op(wd):
+    assert COUNT_OPS == 4, "exhaustive handling of operations in simulation."
 
+    if wd == '+':
+        return plus()
+    elif wd == '-':
+        return minus()
+    elif wd == '.':
+        return dump()
+    else:
+        return push(int(wd))
 
-def usage():
-        print("usage: mercury <subcommand> [args]")
+def load_prgm_from_file(fp):
+    with open(fp, "r") as f:
+        return [parse_word_as_op(word) for word in f.read().split()]
+
+def usage(program_name):
+        print(f"usage: {program_name} <subcommand> [args]")
         print("subcommands:")
-        print("    sim    run the program in simulation mode.")
-        print("    com    run the compiler.")
-
+        print("    sim <file>    run the program in simulation mode.")
+        print("    com <file>    run the compiler.")
 
 def call_cmd(cmd):
     print(' '.join(cmd))
     subprocess.call(cmd)
 
+def uncons(xs):
+    return (xs[0], xs[1:])
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        usage()
+    argv = sys.argv
+    assert len(argv) >= 1
+    (program_name, argv) = uncons(argv)
+
+    if len(argv) < 1:
+        usage(program_name)
         print("\nerror: no subcommand provided")
         exit(1)
 
-    subcommand = sys.argv[1]
+    (subcommand, argv) = uncons(argv)
 
     if subcommand == "sim":
+        if len(argv) < 1:
+            usage(program_name)
+            print("\nerror: argument required")
+            exit(1)
+
+        (input_fp, argv) = uncons(argv)
+        program = load_prgm_from_file(input_fp);
         simulate_program(program)
+
     elif subcommand == "com":
+        if len(argv) < 1:
+            usage(program_name)
+            print("\nerror: argument required")
+            exit(1)
+
+        (input_fp, argv) = uncons(argv)
+        program = load_prgm_from_file(input_fp);
         compile_program(program, "output.asm")
+
         call_cmd(["nasm", "-felf64", "output.asm"])
         call_cmd(["ld", "output.o", "-o", "output"])
     else:

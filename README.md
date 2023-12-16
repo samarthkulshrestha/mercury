@@ -5,7 +5,7 @@ make a self-compiling compiler.
 
 ## Quick-start
 ```console
-./mercury.py sim
-./mercury.py com
+./mercury.py sim ./examples/test.hg
+./mercury.py com ./examples/test.hg
 ./output
 ```
